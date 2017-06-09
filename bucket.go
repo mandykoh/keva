@@ -45,6 +45,10 @@ func (b *bucket) Load(rootPath, id string) error {
 	return decoder.Decode(&b.objects)
 }
 
+func (b *bucket) ObjectCount() int {
+	return len(b.objects)
+}
+
 func (b *bucket) Put(key string, value interface{}) error {
 	encodedValue, err := json.Marshal(value)
 	if err != nil {

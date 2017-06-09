@@ -30,6 +30,26 @@ func TestBucketLoadSucceedsWhenFileDoesNotExist(t *testing.T) {
 	}
 }
 
+func TestBucketObjectCount(t *testing.T) {
+	var b = newBucket("bucket")
+
+	if expected, count := 0, b.ObjectCount(); expected != count {
+		t.Errorf("Expected %d objects but got %d", expected, count)
+	}
+
+	b.Put("a", 1)
+
+	if expected, count := 1, b.ObjectCount(); expected != count {
+		t.Errorf("Expected %d objects but got %d", expected, count)
+	}
+
+	b.Put("b", 2)
+
+	if expected, count := 2, b.ObjectCount(); expected != count {
+		t.Errorf("Expected %d objects but got %d", expected, count)
+	}
+}
+
 func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 	var rootPath, err = ioutil.TempDir("", "keva-bucket-test")
 	if err != nil {
