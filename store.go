@@ -44,6 +44,17 @@ func (s *Store) Put(key string, value interface{}) error {
 	return bucket.Save(s.rootPath)
 }
 
+func (s *Store) Remove(key string) error {
+	bucket, err := s.bucketForKey(key)
+	if err != nil {
+		return err
+	}
+
+	bucket.Remove(key)
+
+	return bucket.Save(s.rootPath)
+}
+
 func (s *Store) SetMaxObjectsPerBucket(n int) *Store {
 	s.maxObjectsPerBucket = n
 	return s

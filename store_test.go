@@ -77,6 +77,31 @@ func TestStorePutEnforcesMaxObjectsPerBucket(t *testing.T) {
 	}
 }
 
+func TestStoreRemove(t *testing.T) {
+	s := newTempStoreWithPrefix("keva-test", t)
+	defer s.Destroy()
+
+	err := s.Put("abc123", "hello")
+	if err != nil {
+		t.Fatalf("Error when storing value: %v", err)
+	}
+
+	err = s.Remove("abc123")
+	if err != nil {
+		t.Fatalf("Error when removing value: %v", err)
+	}
+
+	var result string
+
+	err = s.Get("abc123", &result)
+	if err == nil {
+		t.Fatalf("Expected value to have been removed but got '%v'", result)
+	}
+	if err != nil && err != ErrValueNotFound {
+		t.Fatalf("Expected value to have been removed but got error: %v", err)
+	}
+}
+
 func TestStoreRoundTripping(t *testing.T) {
 	s := newTempStoreWithPrefix("keva-test", t)
 	defer s.Destroy()
