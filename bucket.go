@@ -63,6 +63,10 @@ func (b *bucket) Put(key string, value interface{}) error {
 	return nil
 }
 
+func (b *bucket) Remove(key string) {
+	delete(b.objects, key)
+}
+
 func (b *bucket) Save(rootPath string) error {
 	bucketPath, err := b.path(rootPath)
 	if err != nil {

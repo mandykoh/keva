@@ -91,6 +91,26 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 	}
 }
 
+func TestBucketRemove(t *testing.T) {
+	var b = newBucket("aabb")
+
+	err := b.Put("some-key", "hello")
+	if err != nil {
+		t.Fatalf("Error adding item to bucket: %v", err)
+	}
+
+	b.Remove("some-key")
+
+	var value string
+	err = b.Get("some-key", &value)
+	if err == nil {
+		t.Fatalf("Expected value to have been removed but got '%v'", value)
+	}
+	if err != ErrValueNotFound {
+		t.Fatalf("Expected value to have been removed but got error: %v", err)
+	}
+}
+
 func TestBucketRoundTrip(t *testing.T) {
 	var rootPath, err = ioutil.TempDir("", "keva-bucket-test")
 	if err != nil {
