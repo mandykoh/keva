@@ -13,7 +13,10 @@ func TestBucketGettingNonexistentValueProducesError(t *testing.T) {
 
 	err := b.Get("not-a-valid-key", &dummy)
 	if err == nil {
-		t.Fatalf("Expected an error but got nothing")
+		t.Fatalf("Expected ErrValueNotFound error but got nothing")
+	}
+	if err != ErrValueNotFound {
+		t.Fatalf("Expected ErrValueNotFound but got other error: %v", err)
 	}
 }
 

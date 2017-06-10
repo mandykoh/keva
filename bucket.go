@@ -7,6 +7,9 @@ import (
 	"path"
 )
 
+// ErrValueNotFound indicates that a corresponding value was not found for a key.
+var ErrValueNotFound = errors.New("value not found")
+
 const bucketPathSegmentLength = 2
 
 type bucket struct {
@@ -17,7 +20,7 @@ type bucket struct {
 func (b *bucket) Get(key string, dest interface{}) error {
 	encodedValue, ok := b.objects[key]
 	if !ok {
-		return errors.New("not found")
+		return ErrValueNotFound
 	}
 
 	return json.Unmarshal(encodedValue, &dest)
