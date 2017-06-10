@@ -30,6 +30,26 @@ func TestBucketLoadSucceedsWhenFileDoesNotExist(t *testing.T) {
 	}
 }
 
+func TestBucketObjectCount(t *testing.T) {
+	var b = newBucket("bucket")
+
+	if expected, count := 0, b.ObjectCount(); expected != count {
+		t.Errorf("Expected %d objects but got %d", expected, count)
+	}
+
+	b.Put("a", 1)
+
+	if expected, count := 1, b.ObjectCount(); expected != count {
+		t.Errorf("Expected %d objects but got %d", expected, count)
+	}
+
+	b.Put("b", 2)
+
+	if expected, count := 2, b.ObjectCount(); expected != count {
+		t.Errorf("Expected %d objects but got %d", expected, count)
+	}
+}
+
 func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 	var rootPath, err = ioutil.TempDir("", "keva-bucket-test")
 	if err != nil {
@@ -101,5 +121,76 @@ func TestBucketRoundTrip(t *testing.T) {
 	}
 	if value.Colour != "red" {
 		t.Errorf("Expected value 'red' but got %s", value.Colour)
+	}
+}
+
+func TestBucketSplitPushesObjectsToSubdirectories(t *testing.T) {
+	var rootPath, err = ioutil.TempDir("", "keva-bucket-test")
+	if err != nil {
+		t.Fatalf("Error creating temporary location for bucket: %v", err)
+	}
+
+	defer os.RemoveAll(rootPath)
+
+	var s = NewStore(rootPath)
+
+	var b bucket
+	err = b.Load(rootPath, s.bucketIdForKey("aabb"))
+	if err != nil {
+		t.Fatalf("Error loading bucket: %v", err)
+	}
+
+	b.Put("aabb", "value1")
+	b.Put("aacc", "value2")
+	b.Save(rootPath)
+
+	err = b.Split(s)
+	if err != nil {
+		t.Fatalf("Error splitting bucket: %v", err)
+	}
+
+	// Bucket with original ID should still contain first value
+
+	err = b.Load(rootPath, s.bucketIdForKey("aabb"))
+	if err != nil {
+		t.Fatalf("Error loading bucket: %v", err)
+	}
+	if count := b.ObjectCount(); count != 1 {
+		t.Errorf("Expected bucket to contain 1 object but got %d", count)
+	}
+
+	var value string
+
+	err = b.Get("aabb", &value)
+	if err != nil {
+		t.Errorf("Error retrieving value from bucket: %v", err)
+	}
+	if value != "value1" {
+		t.Errorf("Retrieved value '%s' but expected 'value1'", value)
+	}
+
+	// Second value should no longer be in this bucket
+
+	err = b.Get("aacc", &value)
+	if err == nil {
+		t.Errorf("Expected error but got value '%v'", value)
+	}
+
+	// Second value should have been split into another bucket
+
+	err = b.Load(rootPath, s.bucketIdForKey("aacc"))
+	if err != nil {
+		t.Fatalf("Error loading bucket: %v", err)
+	}
+	if count := b.ObjectCount(); count != 1 {
+		t.Errorf("Expected bucket to contain 1 object but got %d", count)
+	}
+
+	err = b.Get("aacc", &value)
+	if err != nil {
+		t.Errorf("Error retrieving value from bucket: %v", err)
+	}
+	if value != "value2" {
+		t.Errorf("Retrieved value '%s' but expected 'value2'", value)
 	}
 }

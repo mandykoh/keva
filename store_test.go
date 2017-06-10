@@ -1,6 +1,7 @@
 package keva
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -29,6 +30,50 @@ func TestStoreInitialisesDiskLocation(t *testing.T) {
 		t.Fatalf("Expected store location '%v' to be created, but wasn’t", s.rootPath)
 	} else if err != nil {
 		t.Fatalf("Error inspecting disk location for store: %v", err)
+	}
+}
+
+func TestStorePutEnforcesMaxObjectsPerBucket(t *testing.T) {
+	s := newTempStoreWithPrefix("keva-test", t)
+	defer s.Destroy()
+
+	// Check that at the default setting, some buckets will contain
+	// more than one object.
+
+	var bucketsHaveMultipleItems = false
+	for i := 0; i < 256; i++ {
+		key := fmt.Sprintf("%02x", i)
+		s.Put(key, i)
+
+		b, err := s.bucketForKey(key)
+		if err != nil {
+			t.Fatalf("Error retrieving bucket: %v", err)
+		}
+		if count := b.ObjectCount(); count > 1 {
+			bucketsHaveMultipleItems = true
+		}
+	}
+
+	if !bucketsHaveMultipleItems {
+		t.Fatalf("Pre-condition not met: no bucket had more than one item")
+	}
+
+	// Set the limit to one object per bucket and check that all buckets now
+	// can only contain up to one object.
+
+	s.SetMaxObjectsPerBucket(1)
+
+	for i := 0; i < 256; i++ {
+		key := fmt.Sprintf("%02x", i)
+		s.Put(key, i)
+
+		b, err := s.bucketForKey(key)
+		if err != nil {
+			t.Fatalf("Error retrieving bucket: %v", err)
+		}
+		if count := b.ObjectCount(); count > 1 {
+			t.Fatalf("Bucket %s had %d objects when maximum was 1", b.id, count)
+		}
 	}
 }
 

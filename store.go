@@ -37,6 +37,10 @@ func (s *Store) Put(key string, value interface{}) error {
 		return err
 	}
 
+	if bucket.ObjectCount() > s.maxObjectsPerBucket {
+		return bucket.Split(s)
+	}
+
 	return bucket.Save(s.rootPath)
 }
 
