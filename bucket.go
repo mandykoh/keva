@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 // ErrValueNotFound indicates that a corresponding value was not found for a key.
@@ -125,7 +125,7 @@ func (b *bucket) path(rootPath string) (string, error) {
 		}
 
 		part := b.id[i:endOffset]
-		bucketPath = path.Join(bucketPath, part)
+		bucketPath = filepath.Join(bucketPath, part)
 
 		fileInfo, err := os.Stat(bucketPath)
 		if os.IsNotExist(err) {

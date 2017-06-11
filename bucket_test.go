@@ -3,7 +3,7 @@ package keva
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 )
 
@@ -66,7 +66,7 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
-	if expected := path.Join(rootPath, "aa"); expected != result {
+	if expected := filepath.Join(rootPath, "aa"); expected != result {
 		t.Errorf("Expected path '%s' but got '%s'", expected, result)
 	}
 
@@ -76,7 +76,7 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
-	if expected := path.Join(rootPath, "aa", "bb"); expected != result {
+	if expected := filepath.Join(rootPath, "aa", "bb"); expected != result {
 		t.Errorf("Expected path '%s' but got '%s'", expected, result)
 	}
 
@@ -86,7 +86,7 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
-	if expected := path.Join(rootPath, "aa", "bb", "c"); expected != result {
+	if expected := filepath.Join(rootPath, "aa", "bb", "c"); expected != result {
 		t.Errorf("Expected path '%s' but got '%s'", expected, result)
 	}
 }
