@@ -73,14 +73,30 @@ func (b *bucket) Save(rootPath string) error {
 		return err
 	}
 
-	file, err := os.Create(bucketPath)
+	file, err := os.Create(bucketPath + ".swp")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
 	encoder := json.NewEncoder(file)
-	return encoder.Encode(b.objects)
+	err = encoder.Encode(b.objects)
+	if err != nil {
+		file.Close()
+		return err
+	}
+
+	err = file.Sync()
+	if err != nil {
+		file.Close()
+		return err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+
+	return os.Rename(bucketPath+".swp", bucketPath)
 }
 
 func (b *bucket) Split(s *Store) error {
