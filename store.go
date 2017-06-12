@@ -41,7 +41,7 @@ func (s *Store) Put(key string, value interface{}) error {
 		return bucket.Split(s)
 	}
 
-	return bucket.Save(s.rootPath)
+	return bucket.Save()
 }
 
 func (s *Store) Remove(key string) error {
@@ -52,7 +52,7 @@ func (s *Store) Remove(key string) error {
 
 	bucket.Remove(key)
 
-	return bucket.Save(s.rootPath)
+	return bucket.Save()
 }
 
 func (s *Store) SetMaxObjectsPerBucket(n int) *Store {

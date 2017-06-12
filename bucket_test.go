@@ -53,7 +53,7 @@ func TestBucketObjectCount(t *testing.T) {
 	}
 }
 
-func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
+func TestBucketAvailablePathFindsFirstNonDirectory(t *testing.T) {
 	var rootPath, err = ioutil.TempDir("", "keva-bucket-test")
 	if err != nil {
 		t.Fatalf("Error creating temporary location for bucket: %v", err)
@@ -62,7 +62,7 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 
 	var b = newBucket("aabbc")
 
-	result, err := b.path(rootPath)
+	result, err := b.availablePath(rootPath)
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 
 	os.MkdirAll(result, os.FileMode(0700))
 
-	result, err = b.path(rootPath)
+	result, err = b.availablePath(rootPath)
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestBucketPathFindsFirstNonDirectory(t *testing.T) {
 
 	os.MkdirAll(result, os.FileMode(0700))
 
-	result, err = b.path(rootPath)
+	result, err = b.availablePath(rootPath)
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
@@ -120,9 +120,10 @@ func TestBucketRoundTrip(t *testing.T) {
 	defer os.RemoveAll(rootPath)
 
 	var b1 = newBucket("aabb")
+	b1.initPath(rootPath)
 	b1.Put("keyToTheApple", testValue{Name: "apple", Colour: "red"})
 
-	err = b1.Save(rootPath)
+	err = b1.Save()
 	if err != nil {
 		t.Fatalf("Error saving bucket: %v", err)
 	}
@@ -165,7 +166,7 @@ func TestBucketSplitPushesObjectsToSubdirectories(t *testing.T) {
 
 	b.Put("aabb", "value1")
 	b.Put("aacc", "value2")
-	b.Save(rootPath)
+	b.Save()
 
 	err = b.Split(s)
 	if err != nil {
@@ -216,4 +217,8 @@ func TestBucketSplitPushesObjectsToSubdirectories(t *testing.T) {
 	if value != "value2" {
 		t.Errorf("Retrieved value '%s' but expected 'value2'", value)
 	}
+}
+
+func newBucket(id string) *bucket {
+	return &bucket{id: id, objects: make(map[string][]byte)}
 }

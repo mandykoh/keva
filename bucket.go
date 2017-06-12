@@ -14,6 +14,7 @@ const bucketPathSegmentLength = 2
 
 type bucket struct {
 	id      string
+	path    string
 	objects map[string][]byte
 }
 
@@ -30,12 +31,13 @@ func (b *bucket) Load(rootPath, id string) error {
 	b.id = id
 	b.objects = nil
 
-	bucketPath, err := b.path(rootPath)
+	var err error
+	b.path, err = b.availablePath(rootPath)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Open(bucketPath)
+	file, err := os.Open(b.path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			b.objects = make(map[string][]byte)
@@ -67,13 +69,8 @@ func (b *bucket) Remove(key string) {
 	delete(b.objects, key)
 }
 
-func (b *bucket) Save(rootPath string) error {
-	bucketPath, err := b.path(rootPath)
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create(bucketPath + ".swp")
+func (b *bucket) Save() error {
+	file, err := os.Create(b.path + ".swp")
 	if err != nil {
 		return err
 	}
@@ -96,20 +93,15 @@ func (b *bucket) Save(rootPath string) error {
 		return err
 	}
 
-	return os.Rename(bucketPath+".swp", bucketPath)
+	return os.Rename(b.path+".swp", b.path)
 }
 
 func (b *bucket) Split(s *Store) error {
-	bucketPath, err := b.path(s.rootPath)
-	if err != nil {
-		return err
-	}
+	os.Rename(b.path, b.path+".swp")
 
-	os.Rename(bucketPath, bucketPath+".swp")
-
-	err = os.Mkdir(bucketPath, os.FileMode(0700))
+	err := os.Mkdir(b.path, os.FileMode(0700))
 	if err != nil {
-		os.Rename(bucketPath+".swp", bucketPath)
+		os.Rename(b.path+".swp", b.path)
 		return err
 	}
 
@@ -117,21 +109,21 @@ func (b *bucket) Split(s *Store) error {
 		bucket, err := s.bucketForKey(key)
 		if err == nil {
 			bucket.objects[key] = encodedValue
-			err = bucket.Save(s.rootPath)
+			err = bucket.Save()
 		}
 
 		if err != nil {
-			os.RemoveAll(bucketPath)
-			os.Rename(bucketPath+".swp", bucketPath)
+			os.RemoveAll(b.path)
+			os.Rename(b.path+".swp", b.path)
 			return err
 		}
 	}
 
-	os.Remove(bucketPath + ".swp")
+	os.Remove(b.path + ".swp")
 	return nil
 }
 
-func (b *bucket) path(rootPath string) (string, error) {
+func (b *bucket) availablePath(rootPath string) (string, error) {
 	bucketPath := rootPath
 
 	for i := 0; i < len(b.id); i += bucketPathSegmentLength {
@@ -158,6 +150,8 @@ func (b *bucket) path(rootPath string) (string, error) {
 	return bucketPath, nil
 }
 
-func newBucket(id string) *bucket {
-	return &bucket{id: id, objects: make(map[string][]byte)}
+func (b *bucket) initPath(rootPath string) error {
+	var err error
+	b.path, err = b.availablePath(rootPath)
+	return err
 }
