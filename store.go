@@ -7,13 +7,16 @@ import (
 )
 
 const DefaultMaxObjectsPerBucket = 64
+const DefaultMaxBucketsCached = 128
 
 type Store struct {
 	maxObjectsPerBucket int
 	rootPath            string
+	cache               *bucketCache
 }
 
 func (s *Store) Destroy() error {
+	s.cache.Clear()
 	return os.RemoveAll(s.rootPath)
 }
 
@@ -27,7 +30,8 @@ func (s *Store) Get(key string, dest interface{}) error {
 }
 
 func (s *Store) Put(key string, value interface{}) error {
-	bucket, err := s.bucketForKey(key)
+	id := s.bucketIDForKey(key)
+	bucket, err := s.bucketForID(id)
 	if err != nil {
 		return err
 	}
@@ -38,10 +42,11 @@ func (s *Store) Put(key string, value interface{}) error {
 	}
 
 	if bucket.ObjectCount() > s.maxObjectsPerBucket {
+		s.cache.Evict(id)
 		return bucket.Split(s)
 	}
 
-	return bucket.Save()
+	return bucket.Save(s.rootPath)
 }
 
 func (s *Store) Remove(key string) error {
@@ -52,7 +57,12 @@ func (s *Store) Remove(key string) error {
 
 	bucket.Remove(key)
 
-	return bucket.Save()
+	return bucket.Save(s.rootPath)
+}
+
+func (s *Store) SetMaxBucketsCached(n int) *Store {
+	s.cache.SetMaxBucketsCached(n)
+	return s
 }
 
 func (s *Store) SetMaxObjectsPerBucket(n int) *Store {
@@ -61,8 +71,21 @@ func (s *Store) SetMaxObjectsPerBucket(n int) *Store {
 }
 
 func (s *Store) bucketForKey(key string) (*bucket, error) {
+	return s.bucketForID(s.bucketIDForKey(key))
+}
+
+func (s *Store) bucketForID(id string) (*bucket, error) {
+	return s.cache.Fetch(id, s.loadBucketForID)
+}
+
+func (s *Store) bucketIDForKey(key string) string {
+	hash := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hash[:])
+}
+
+func (s *Store) loadBucketForID(id string) (*bucket, error) {
 	var b bucket
-	err := b.Load(s.rootPath, s.bucketIdForKey(key))
+	err := b.Load(s.rootPath, id)
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +93,10 @@ func (s *Store) bucketForKey(key string) (*bucket, error) {
 	return &b, nil
 }
 
-func (s *Store) bucketIdForKey(key string) string {
-	hash := sha256.Sum256([]byte(key))
-	return hex.EncodeToString(hash[:])
-}
-
 func NewStore(rootPath string) *Store {
 	return &Store{
 		maxObjectsPerBucket: DefaultMaxObjectsPerBucket,
 		rootPath:            rootPath,
+		cache:               newBucketCache(DefaultMaxBucketsCached),
 	}
 }

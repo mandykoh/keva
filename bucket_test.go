@@ -66,27 +66,27 @@ func TestBucketAvailablePathFindsFirstNonDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
-	if expected := filepath.Join(rootPath, "aa"); expected != result {
+	if expected := "aa"; expected != result {
 		t.Errorf("Expected path '%s' but got '%s'", expected, result)
 	}
 
-	os.MkdirAll(result, os.FileMode(0700))
+	os.MkdirAll(filepath.Join(rootPath, result), os.FileMode(0700))
 
 	result, err = b.availablePath(rootPath)
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
-	if expected := filepath.Join(rootPath, "aa", "bb"); expected != result {
+	if expected := filepath.Join("aa", "bb"); expected != result {
 		t.Errorf("Expected path '%s' but got '%s'", expected, result)
 	}
 
-	os.MkdirAll(result, os.FileMode(0700))
+	os.MkdirAll(filepath.Join(rootPath, result), os.FileMode(0700))
 
 	result, err = b.availablePath(rootPath)
 	if err != nil {
 		t.Fatalf("Error while generating bucket path: %v", err)
 	}
-	if expected := filepath.Join(rootPath, "aa", "bb", "c"); expected != result {
+	if expected := filepath.Join("aa", "bb", "c"); expected != result {
 		t.Errorf("Expected path '%s' but got '%s'", expected, result)
 	}
 }
@@ -123,7 +123,7 @@ func TestBucketRoundTrip(t *testing.T) {
 	b1.initPath(rootPath)
 	b1.Put("keyToTheApple", testValue{Name: "apple", Colour: "red"})
 
-	err = b1.Save()
+	err = b1.Save(rootPath)
 	if err != nil {
 		t.Fatalf("Error saving bucket: %v", err)
 	}
@@ -159,14 +159,14 @@ func TestBucketSplitPushesObjectsToSubdirectories(t *testing.T) {
 	var s = NewStore(rootPath)
 
 	var b bucket
-	err = b.Load(rootPath, s.bucketIdForKey("aabb"))
+	err = b.Load(rootPath, s.bucketIDForKey("aabb"))
 	if err != nil {
 		t.Fatalf("Error loading bucket: %v", err)
 	}
 
 	b.Put("aabb", "value1")
 	b.Put("aacc", "value2")
-	b.Save()
+	b.Save(rootPath)
 
 	err = b.Split(s)
 	if err != nil {
@@ -175,7 +175,7 @@ func TestBucketSplitPushesObjectsToSubdirectories(t *testing.T) {
 
 	// Bucket with original ID should still contain first value
 
-	err = b.Load(rootPath, s.bucketIdForKey("aabb"))
+	err = b.Load(rootPath, s.bucketIDForKey("aabb"))
 	if err != nil {
 		t.Fatalf("Error loading bucket: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestBucketSplitPushesObjectsToSubdirectories(t *testing.T) {
 
 	// Second value should have been split into another bucket
 
-	err = b.Load(rootPath, s.bucketIdForKey("aacc"))
+	err = b.Load(rootPath, s.bucketIDForKey("aacc"))
 	if err != nil {
 		t.Fatalf("Error loading bucket: %v", err)
 	}

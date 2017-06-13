@@ -37,7 +37,9 @@ func (b *bucket) Load(rootPath, id string) error {
 		return err
 	}
 
-	file, err := os.Open(b.path)
+	absFilePath := filepath.Join(rootPath, b.path)
+
+	file, err := os.Open(absFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			b.objects = make(map[string][]byte)
@@ -69,8 +71,10 @@ func (b *bucket) Remove(key string) {
 	delete(b.objects, key)
 }
 
-func (b *bucket) Save() error {
-	file, err := os.Create(b.path + ".swp")
+func (b *bucket) Save(rootPath string) error {
+	absFilePath := filepath.Join(rootPath, b.path)
+
+	file, err := os.Create(absFilePath + ".swp")
 	if err != nil {
 		return err
 	}
@@ -93,38 +97,40 @@ func (b *bucket) Save() error {
 		return err
 	}
 
-	return os.Rename(b.path+".swp", b.path)
+	return os.Rename(absFilePath+".swp", absFilePath)
 }
 
 func (b *bucket) Split(s *Store) error {
-	os.Rename(b.path, b.path+".swp")
+	absFilePath := filepath.Join(s.rootPath, b.path)
 
-	err := os.Mkdir(b.path, os.FileMode(0700))
+	os.Rename(absFilePath, absFilePath+".swp")
+
+	err := os.Mkdir(absFilePath, os.FileMode(0700))
 	if err != nil {
-		os.Rename(b.path+".swp", b.path)
+		os.Rename(absFilePath+".swp", absFilePath)
 		return err
 	}
 
 	for key, encodedValue := range b.objects {
-		bucket, err := s.bucketForKey(key)
+		bucket, err := s.loadBucketForID(s.bucketIDForKey(key))
 		if err == nil {
 			bucket.objects[key] = encodedValue
-			err = bucket.Save()
+			err = bucket.Save(s.rootPath)
 		}
 
 		if err != nil {
-			os.RemoveAll(b.path)
-			os.Rename(b.path+".swp", b.path)
+			os.RemoveAll(absFilePath)
+			os.Rename(absFilePath+".swp", absFilePath)
 			return err
 		}
 	}
 
-	os.Remove(b.path + ".swp")
+	os.Remove(absFilePath + ".swp")
 	return nil
 }
 
 func (b *bucket) availablePath(rootPath string) (string, error) {
-	bucketPath := rootPath
+	var bucketPath string
 
 	for i := 0; i < len(b.id); i += bucketPathSegmentLength {
 		var endOffset = i + bucketPathSegmentLength
@@ -135,7 +141,7 @@ func (b *bucket) availablePath(rootPath string) (string, error) {
 		part := b.id[i:endOffset]
 		bucketPath = filepath.Join(bucketPath, part)
 
-		fileInfo, err := os.Stat(bucketPath)
+		fileInfo, err := os.Stat(filepath.Join(rootPath, bucketPath))
 		if os.IsNotExist(err) {
 			break
 		}
