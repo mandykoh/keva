@@ -10,11 +10,9 @@ import (
 // ErrValueNotFound indicates that a corresponding value was not found for a key.
 var ErrValueNotFound = errors.New("value not found")
 
-const bucketPathSegmentLength = 2
-
 type bucket struct {
 	id      string
-	path    string
+	path    bucketPath
 	objects map[string][]byte
 }
 
@@ -37,7 +35,7 @@ func (b *bucket) Load(rootPath, id string) error {
 		return err
 	}
 
-	absFilePath := filepath.Join(rootPath, b.path)
+	absFilePath := filepath.Join(rootPath, b.path.PathString())
 
 	file, err := os.Open(absFilePath)
 	if err != nil {
@@ -72,7 +70,7 @@ func (b *bucket) Remove(key string) {
 }
 
 func (b *bucket) Save(rootPath string) error {
-	absFilePath := filepath.Join(rootPath, b.path)
+	absFilePath := filepath.Join(rootPath, b.path.PathString())
 
 	file, err := os.Create(absFilePath + ".swp")
 	if err != nil {
@@ -101,7 +99,7 @@ func (b *bucket) Save(rootPath string) error {
 }
 
 func (b *bucket) Split(s *Store) error {
-	absFilePath := filepath.Join(s.rootPath, b.path)
+	absFilePath := filepath.Join(s.rootPath, b.path.PathString())
 
 	os.Rename(absFilePath, absFilePath+".swp")
 
@@ -129,19 +127,15 @@ func (b *bucket) Split(s *Store) error {
 	return nil
 }
 
-func (b *bucket) availablePath(rootPath string) (string, error) {
-	var bucketPath string
+func (b *bucket) availablePath(rootPath string) (bucketPath, error) {
+	var filePath = rootPath
+	var path = bucketPath(b.id)
+	var step string
 
-	for i := 0; i < len(b.id); i += bucketPathSegmentLength {
-		var endOffset = i + bucketPathSegmentLength
-		if endOffset > len(b.id) {
-			endOffset = len(b.id)
-		}
+	for step, path = path.Step(); step != ""; step, path = path.Step() {
+		filePath = filepath.Join(filePath, step)
 
-		part := b.id[i:endOffset]
-		bucketPath = filepath.Join(bucketPath, part)
-
-		fileInfo, err := os.Stat(filepath.Join(rootPath, bucketPath))
+		fileInfo, err := os.Stat(filePath)
 		if os.IsNotExist(err) {
 			break
 		}
@@ -153,7 +147,7 @@ func (b *bucket) availablePath(rootPath string) (string, error) {
 		}
 	}
 
-	return bucketPath, nil
+	return bucketPath(b.id[0 : len(b.id)-len(path)]), nil
 }
 
 func (b *bucket) initPath(rootPath string) error {
