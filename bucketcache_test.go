@@ -2,6 +2,9 @@ package keva
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -142,6 +145,87 @@ func TestBucketCache(t *testing.T) {
 		}
 		if expected := "02-4"; result.id != expected {
 			t.Errorf("Expected bucket %v but got %v", expected, result.id)
+		}
+	})
+
+	t.Run("Fetch() flushes evicted buckets to disk", func(t *testing.T) {
+		rootPath, err := ioutil.TempDir("", "keva-test")
+		if err != nil {
+			t.Fatalf("Could not create temporary location: %v", err)
+		}
+
+		c := newBucketCache(2)
+
+		fetch := func(id string) (*bucket, error) {
+			b := newBucket(id)
+			b.path = bucketPath(id)
+			return b, nil
+		}
+
+		// First fetch should get a new bucket 01
+
+		result, err := c.Fetch("01", rootPath, fetch)
+		if err != nil {
+			t.Errorf("Expected success but got error: %v", err)
+		}
+		if expected := "01"; result.id != expected {
+			t.Errorf("Expected bucket %v but got %v", expected, result.id)
+		}
+
+		// Second fetch should get a new bucket 02
+
+		bucketToEvict, err := c.Fetch("02", rootPath, fetch)
+		if err != nil {
+			t.Errorf("Expected success but got error: %v", err)
+		}
+		if expected := "02"; bucketToEvict.id != expected {
+			t.Errorf("Expected bucket %v but got %v", expected, bucketToEvict.id)
+		}
+
+		// Add something to 02 to make it dirty
+		err = bucketToEvict.Put("someKey", "someValue")
+		if err != nil {
+			t.Fatalf("Error adding object to bucket: %v", err)
+		}
+
+		// Fetching the first ID again should return cached 01
+
+		result, err = c.Fetch("01", rootPath, fetch)
+		if err != nil {
+			t.Errorf("Expected success but got error: %v", err)
+		}
+		if expected := "01"; result.id != expected {
+			t.Errorf("Expected bucket %v but got %v", expected, result.id)
+		}
+
+		// Bucket 02 should not have been flushed to disk yet
+
+		evictedBucketPath := filepath.Join(rootPath, bucketToEvict.path.PathString())
+		_, err = os.Stat(evictedBucketPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				t.Fatalf("Couldn’t stat bucket file %s: %v", evictedBucketPath, err)
+			}
+		}
+
+		// Fetching a new ID should get a new bucket 03 (and evict 02)
+
+		result, err = c.Fetch("03", rootPath, fetch)
+		if err != nil {
+			t.Errorf("Expected success but got error: %v", err)
+		}
+		if expected := "03"; result.id != expected {
+			t.Errorf("Expected bucket %v but got %v", expected, result.id)
+		}
+
+		// Bucket 02 should now exist on disk
+
+		_, err = os.Stat(evictedBucketPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				t.Fatalf("Expected bucket file %s to exist but it did not: %v", evictedBucketPath, err)
+			}
+			t.Fatalf("Couldn’t stat bucket file %s: %v", evictedBucketPath, err)
 		}
 	})
 
