@@ -60,7 +60,11 @@ func (c *bucketCache) Fetch(bucketID string, rootPath string, fetch func(string)
 		return nil, err
 	}
 
-	c.encache(b, rootPath)
+	err = c.encache(b, rootPath)
+	if err != nil {
+		return nil, err
+	}
+
 	return b, nil
 }
 
