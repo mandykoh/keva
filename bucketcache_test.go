@@ -86,7 +86,7 @@ func TestBucketCache(t *testing.T) {
 			return b, nil
 		}
 
-		// First fetch should get a new bucket 0101
+		// First fetch should get a new bucket 01-1
 
 		result, err := c.Fetch("01", "", fetch)
 		if err != nil {
@@ -96,7 +96,7 @@ func TestBucketCache(t *testing.T) {
 			t.Errorf("Expected bucket %v but got %v", expected, result.id)
 		}
 
-		// Second fetch should get a new bucket 2-2
+		// Second fetch should get a new bucket 02-2
 
 		result, err = c.Fetch("02", "", fetch)
 		if err != nil {
@@ -106,7 +106,7 @@ func TestBucketCache(t *testing.T) {
 			t.Errorf("Expected bucket %v but got %v", expected, result.id)
 		}
 
-		// Fetching the first ID again should return cached 1-1
+		// Fetching the first ID again should return cached 01-1
 
 		result, err = c.Fetch("01", "", fetch)
 		if err != nil {
@@ -116,7 +116,7 @@ func TestBucketCache(t *testing.T) {
 			t.Errorf("Expected bucket %v but got %v", expected, result.id)
 		}
 
-		// Fetching a new ID should get a new bucket 3-3 (and evict 2-2)
+		// Fetching a new ID should get a new bucket 03-3 (and evict 02-2)
 
 		result, err = c.Fetch("03", "", fetch)
 		if err != nil {
@@ -126,7 +126,7 @@ func TestBucketCache(t *testing.T) {
 			t.Errorf("Expected bucket %v but got %v", expected, result.id)
 		}
 
-		// Fetching the first ID again should still return cached 1-1
+		// Fetching the first ID again should still return cached 01-1
 
 		result, err = c.Fetch("01", "", fetch)
 		if err != nil {
@@ -137,7 +137,7 @@ func TestBucketCache(t *testing.T) {
 		}
 
 		// Second ID should have been evicted, so fetching it again should get a
-		// new bucket 2-4.
+		// new bucket 02-4.
 
 		result, err = c.Fetch("02", "", fetch)
 		if err != nil {
@@ -223,7 +223,7 @@ func TestBucketCache(t *testing.T) {
 		_, err = os.Stat(evictedBucketPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				t.Fatalf("Expected bucket file %s to exist but it did not: %v", evictedBucketPath, err)
+				t.Fatalf("Expected bucket file %s to exist but it did not", evictedBucketPath)
 			}
 			t.Fatalf("Couldn’t stat bucket file %s: %v", evictedBucketPath, err)
 		}
