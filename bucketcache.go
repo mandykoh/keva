@@ -75,9 +75,15 @@ func (c *bucketCache) Flush(rootPath string) error {
 	return nil
 }
 
-func (c *bucketCache) SetMaxBucketsCached(n int) {
+func (c *bucketCache) SetMaxBucketsCached(n int, rootPath string) error {
+	err := c.Flush(rootPath)
+	if err != nil {
+		return err
+	}
+
 	c.maxBucketsCached = n
 	c.Clear()
+	return nil
 }
 
 func (c *bucketCache) encache(b *bucket, rootPath string) error {

@@ -71,14 +71,12 @@ func (s *Store) Remove(key string) error {
 	return nil
 }
 
-func (s *Store) SetMaxBucketsCached(n int) *Store {
-	s.cache.SetMaxBucketsCached(n)
-	return s
+func (s *Store) SetMaxBucketsCached(n int) error {
+	return s.cache.SetMaxBucketsCached(n, s.rootPath)
 }
 
-func (s *Store) SetMaxObjectsPerBucket(n int) *Store {
+func (s *Store) SetMaxObjectsPerBucket(n int) {
 	s.maxObjectsPerBucket = n
-	return s
 }
 
 func (s *Store) bucketForKey(key string) (*bucket, error) {
