@@ -11,9 +11,10 @@ import (
 var ErrValueNotFound = errors.New("value not found")
 
 type bucket struct {
-	id      string
-	path    bucketPath
-	objects map[string][]byte
+	id        string
+	path      bucketPath
+	needsSave bool
+	objects   map[string][]byte
 }
 
 func (b *bucket) Get(key string, dest interface{}) error {
@@ -62,14 +63,20 @@ func (b *bucket) Put(key string, value interface{}) error {
 	}
 
 	b.objects[key] = encodedValue
+	b.needsSave = true
 	return nil
 }
 
 func (b *bucket) Remove(key string) {
 	delete(b.objects, key)
+	b.needsSave = true
 }
 
 func (b *bucket) Save(rootPath string) error {
+	if !b.needsSave {
+		return nil
+	}
+
 	absFilePath := filepath.Join(rootPath, b.path.PathString())
 
 	file, err := os.Create(absFilePath + ".swp")
@@ -95,7 +102,13 @@ func (b *bucket) Save(rootPath string) error {
 		return err
 	}
 
-	return os.Rename(absFilePath+".swp", absFilePath)
+	err = os.Rename(absFilePath+".swp", absFilePath)
+	if err != nil {
+		return err
+	}
+
+	b.needsSave = false
+	return nil
 }
 
 func (b *bucket) Split(s *Store) error {
@@ -110,20 +123,19 @@ func (b *bucket) Split(s *Store) error {
 	}
 
 	for key, encodedValue := range b.objects {
-		bucket, err := s.loadBucketForID(s.bucketIDForKey(key))
-		if err == nil {
-			bucket.objects[key] = encodedValue
-			err = bucket.Save(s.rootPath)
-		}
-
+		bucket, err := s.bucketForKey(key)
 		if err != nil {
 			os.RemoveAll(absFilePath)
 			os.Rename(absFilePath+".swp", absFilePath)
 			return err
 		}
+
+		bucket.objects[key] = encodedValue
+		bucket.needsSave = true
 	}
 
 	os.Remove(absFilePath + ".swp")
+	b.needsSave = false
 	return nil
 }
 

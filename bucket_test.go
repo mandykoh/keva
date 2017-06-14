@@ -175,6 +175,11 @@ func TestBucket(t *testing.T) {
 			t.Fatalf("Error splitting bucket: %v", err)
 		}
 
+		err = s.Flush()
+		if err != nil {
+			t.Fatalf("Error flushing store: %v", err)
+		}
+
 		// Bucket with original ID should still contain first value
 
 		err = b.Load(rootPath, s.bucketIDForKey("aabb"))

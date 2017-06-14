@@ -36,6 +36,8 @@ func TestStore(t *testing.T) {
 		s := newTempStoreWithPrefix("keva-test", t)
 		defer s.Destroy()
 
+		s.SetMaxBucketsCached(512)
+
 		// Check that at the default setting, some buckets will contain
 		// more than one object.
 

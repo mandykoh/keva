@@ -17,12 +17,12 @@ func TestBucketCache(t *testing.T) {
 		c := newBucketCache(DefaultMaxBucketsCached)
 
 		b := b1
-		c.Fetch("ab", func(string) (*bucket, error) { return b, nil })
+		c.Fetch("ab", "", func(string) (*bucket, error) { return b, nil })
 
 		c.Clear()
 
 		b = b2
-		result, err := c.Fetch("ab", func(string) (*bucket, error) { return b, nil })
+		result, err := c.Fetch("ab", "", func(string) (*bucket, error) { return b, nil })
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -41,12 +41,12 @@ func TestBucketCache(t *testing.T) {
 		c := newBucketCache(DefaultMaxBucketsCached)
 
 		b := b1
-		c.Fetch("ab", func(string) (*bucket, error) { return b, nil })
+		c.Fetch("ab", "", func(string) (*bucket, error) { return b, nil })
 
-		c.Evict("ab")
+		c.Evict("ab", "")
 
 		b = b2
-		result, err := c.Fetch("ab", func(string) (*bucket, error) { return b, nil })
+		result, err := c.Fetch("ab", "", func(string) (*bucket, error) { return b, nil })
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -59,7 +59,7 @@ func TestBucketCache(t *testing.T) {
 		b := newBucket("bucket")
 		c := newBucketCache(DefaultMaxBucketsCached)
 
-		result, err := c.Fetch("ab", func(string) (*bucket, error) { return b, nil })
+		result, err := c.Fetch("ab", "", func(string) (*bucket, error) { return b, nil })
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -85,7 +85,7 @@ func TestBucketCache(t *testing.T) {
 
 		// First fetch should get a new bucket 0101
 
-		result, err := c.Fetch("01", fetch)
+		result, err := c.Fetch("01", "", fetch)
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -95,7 +95,7 @@ func TestBucketCache(t *testing.T) {
 
 		// Second fetch should get a new bucket 2-2
 
-		result, err = c.Fetch("02", fetch)
+		result, err = c.Fetch("02", "", fetch)
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -105,7 +105,7 @@ func TestBucketCache(t *testing.T) {
 
 		// Fetching the first ID again should return cached 1-1
 
-		result, err = c.Fetch("01", fetch)
+		result, err = c.Fetch("01", "", fetch)
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -115,7 +115,7 @@ func TestBucketCache(t *testing.T) {
 
 		// Fetching a new ID should get a new bucket 3-3 (and evict 2-2)
 
-		result, err = c.Fetch("03", fetch)
+		result, err = c.Fetch("03", "", fetch)
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -125,7 +125,7 @@ func TestBucketCache(t *testing.T) {
 
 		// Fetching the first ID again should still return cached 1-1
 
-		result, err = c.Fetch("01", fetch)
+		result, err = c.Fetch("01", "", fetch)
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -136,7 +136,7 @@ func TestBucketCache(t *testing.T) {
 		// Second ID should have been evicted, so fetching it again should get a
 		// new bucket 2-4.
 
-		result, err = c.Fetch("02", fetch)
+		result, err = c.Fetch("02", "", fetch)
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}
@@ -155,10 +155,10 @@ func TestBucketCache(t *testing.T) {
 		c := newBucketCache(DefaultMaxBucketsCached)
 
 		b := b1
-		c.Fetch("bucket1", func(string) (*bucket, error) { return b, nil })
+		c.Fetch("bucket1", "", func(string) (*bucket, error) { return b, nil })
 
 		b = b2
-		result, err := c.Fetch("bucket1", func(string) (*bucket, error) { return b, nil })
+		result, err := c.Fetch("bucket1", "", func(string) (*bucket, error) { return b, nil })
 		if err != nil {
 			t.Errorf("Expected success but got error: %v", err)
 		}

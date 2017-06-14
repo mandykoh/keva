@@ -24,15 +24,32 @@ func (c *bucketCache) Clear() {
 	c.trieRoot = newBucketCacheTrie()
 }
 
-func (c *bucketCache) Evict(bucketID string) {
+func (c *bucketCache) Close(rootPath string) error {
+	err := c.Flush(rootPath)
+	if err != nil {
+		return err
+	}
+
+	c.Clear()
+	return nil
+}
+
+func (c *bucketCache) Evict(bucketID string, rootPath string) error {
 	e := c.trieRoot.Remove(bucketPath(bucketID))
 	if e != nil {
+		err := e.bucket.Save(rootPath)
+		if err != nil {
+			return err
+		}
+
 		e.SpliceAfter(&c.freeEntries)
 		c.bucketsCached--
 	}
+
+	return nil
 }
 
-func (c *bucketCache) Fetch(bucketID string, fetch func(string) (*bucket, error)) (*bucket, error) {
+func (c *bucketCache) Fetch(bucketID string, rootPath string, fetch func(string) (*bucket, error)) (*bucket, error) {
 	b := c.lookup(bucketID)
 	if b != nil {
 		return b, nil
@@ -43,8 +60,19 @@ func (c *bucketCache) Fetch(bucketID string, fetch func(string) (*bucket, error)
 		return nil, err
 	}
 
-	c.encache(b)
+	c.encache(b, rootPath)
 	return b, nil
+}
+
+func (c *bucketCache) Flush(rootPath string) error {
+	for e := c.usedEntries.next; e != &c.usedEntries; e = e.next {
+		err := e.bucket.Save(rootPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c *bucketCache) SetMaxBucketsCached(n int) {
@@ -52,12 +80,17 @@ func (c *bucketCache) SetMaxBucketsCached(n int) {
 	c.Clear()
 }
 
-func (c *bucketCache) encache(b *bucket) {
+func (c *bucketCache) encache(b *bucket, rootPath string) error {
 	var e *bucketCacheEntry
 
 	if c.bucketsCached >= c.maxBucketsCached {
 		e = c.usedEntries.prev
 		c.trieRoot.Remove(e.bucket.path)
+		err := e.bucket.Save(rootPath)
+		if err != nil {
+			return err
+		}
+
 	} else {
 		c.bucketsCached++
 		e = c.freeEntries.next
@@ -67,6 +100,7 @@ func (c *bucketCache) encache(b *bucket) {
 	e.bucket = b
 
 	c.trieRoot.Insert(e)
+	return nil
 }
 
 func (c *bucketCache) lookup(id string) *bucket {

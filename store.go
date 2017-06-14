@@ -15,9 +15,17 @@ type Store struct {
 	cache               *bucketCache
 }
 
+func (s *Store) Close() error {
+	return s.cache.Close(s.rootPath)
+}
+
 func (s *Store) Destroy() error {
 	s.cache.Clear()
 	return os.RemoveAll(s.rootPath)
+}
+
+func (s *Store) Flush() error {
+	return s.cache.Flush(s.rootPath)
 }
 
 func (s *Store) Get(key string, dest interface{}) error {
@@ -42,11 +50,15 @@ func (s *Store) Put(key string, value interface{}) error {
 	}
 
 	if bucket.ObjectCount() > s.maxObjectsPerBucket {
-		s.cache.Evict(id)
+		err = s.cache.Evict(id, s.rootPath)
+		if err != nil {
+			return err
+		}
+
 		return bucket.Split(s)
 	}
 
-	return bucket.Save(s.rootPath)
+	return nil
 }
 
 func (s *Store) Remove(key string) error {
@@ -56,8 +68,7 @@ func (s *Store) Remove(key string) error {
 	}
 
 	bucket.Remove(key)
-
-	return bucket.Save(s.rootPath)
+	return nil
 }
 
 func (s *Store) SetMaxBucketsCached(n int) *Store {
@@ -75,7 +86,7 @@ func (s *Store) bucketForKey(key string) (*bucket, error) {
 }
 
 func (s *Store) bucketForID(id string) (*bucket, error) {
-	return s.cache.Fetch(id, s.loadBucketForID)
+	return s.cache.Fetch(id, s.rootPath, s.loadBucketForID)
 }
 
 func (s *Store) bucketIDForKey(key string) string {
