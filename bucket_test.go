@@ -122,7 +122,7 @@ func TestBucket(t *testing.T) {
 		defer os.RemoveAll(rootPath)
 
 		var b1 = newBucket("aabb")
-		b1.initPath(rootPath)
+		b1.path, _ = b1.availablePath(rootPath)
 		b1.Put("keyToTheApple", testValue{Name: "apple", Colour: "red"})
 
 		err = b1.Save(rootPath)

@@ -161,9 +161,3 @@ func (b *bucket) availablePath(rootPath string) (bucketPath, error) {
 
 	return bucketPath(b.id[0 : len(b.id)-len(path)]), nil
 }
-
-func (b *bucket) initPath(rootPath string) error {
-	var err error
-	b.path, err = b.availablePath(rootPath)
-	return err
-}
