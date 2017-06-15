@@ -13,6 +13,7 @@ type Store struct {
 	maxObjectsPerBucket int
 	rootPath            string
 	cache               *bucketCache
+	readyToFlush        bool
 }
 
 func (s *Store) Close() error {
@@ -25,7 +26,16 @@ func (s *Store) Destroy() error {
 }
 
 func (s *Store) Flush() error {
-	return s.cache.Flush(s.rootPath)
+	if s.readyToFlush {
+		err := s.cache.Flush(s.rootPath)
+		if err != nil {
+			return err
+		}
+
+		s.readyToFlush = false
+	}
+
+	return nil
 }
 
 func (s *Store) Get(key string, dest interface{}) error {
@@ -49,6 +59,8 @@ func (s *Store) Put(key string, value interface{}) error {
 		return err
 	}
 
+	s.readyToFlush = true
+
 	if bucket.ObjectCount() > s.maxObjectsPerBucket {
 		err = s.cache.Evict(id, s.rootPath)
 		if err != nil {
@@ -68,6 +80,7 @@ func (s *Store) Remove(key string) error {
 	}
 
 	bucket.Remove(key)
+	s.readyToFlush = true
 	return nil
 }
 

@@ -175,6 +175,7 @@ func TestBucket(t *testing.T) {
 			t.Fatalf("Error splitting bucket: %v", err)
 		}
 
+		s.readyToFlush = true
 		err = s.Flush()
 		if err != nil {
 			t.Fatalf("Error flushing store: %v", err)
