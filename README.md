@@ -4,4 +4,4 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mandykoh/keva)](https://goreportcard.com/report/github.com/mandykoh/keva)
 [![Build Status](https://travis-ci.org/mandykoh/keva.svg?branch=master)](https://travis-ci.org/mandykoh/keva)
 
-Lightweight filesystem-based key-value store for lots of objects.
+Lightweight filesystem-based key-value store with write-back caching for lots of objects.
