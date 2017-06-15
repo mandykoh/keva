@@ -111,8 +111,8 @@ func (b *bucket) Save(rootPath string) error {
 	return nil
 }
 
-func (b *bucket) Split(s *Store) error {
-	absFilePath := filepath.Join(s.rootPath, b.path.PathString())
+func (b *bucket) Split(rootPath string, bucketForKey func (string) (*bucket, error)) error {
+	absFilePath := filepath.Join(rootPath, b.path.PathString())
 
 	os.Rename(absFilePath, absFilePath+".swp")
 
@@ -123,7 +123,7 @@ func (b *bucket) Split(s *Store) error {
 	}
 
 	for key, encodedValue := range b.objects {
-		bucket, err := s.bucketForKey(key)
+		bucket, err := bucketForKey(key)
 		if err != nil {
 			os.RemoveAll(absFilePath)
 			os.Rename(absFilePath+".swp", absFilePath)

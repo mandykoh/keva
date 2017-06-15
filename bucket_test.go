@@ -170,7 +170,7 @@ func TestBucket(t *testing.T) {
 		b.Put("aacc", "value2")
 		b.Save(rootPath)
 
-		err = b.Split(s)
+		err = b.Split(rootPath, s.bucketForKey)
 		if err != nil {
 			t.Fatalf("Error splitting bucket: %v", err)
 		}

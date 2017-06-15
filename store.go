@@ -55,7 +55,7 @@ func (s *Store) Put(key string, value interface{}) error {
 			return err
 		}
 
-		return bucket.Split(s)
+		return bucket.Split(s.rootPath, s.bucketForKey)
 	}
 
 	return nil
