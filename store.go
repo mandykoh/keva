@@ -47,6 +47,13 @@ func (s *Store) Get(key string, dest interface{}) error {
 	return bucket.Get(key, dest)
 }
 
+func (s *Store) Info() StoreInfo {
+	return StoreInfo{
+		CacheHitCount:  s.cache.HitCount,
+		CacheMissCount: s.cache.MissCount,
+	}
+}
+
 func (s *Store) Put(key string, value interface{}) error {
 	id := s.bucketIDForKey(key)
 	bucket, err := s.bucketForID(id)

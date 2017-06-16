@@ -1,6 +1,8 @@
 package keva
 
 type bucketCache struct {
+	HitCount         uint64
+	MissCount        uint64
 	maxBucketsCached int
 	usedEntries      bucketCacheEntry
 	freeEntries      bucketCacheEntry
@@ -116,10 +118,12 @@ func (c *bucketCache) encache(b *bucket, rootPath string) error {
 func (c *bucketCache) lookup(id string) *bucket {
 	e := c.trieRoot.Find(bucketPath(id))
 	if e != nil {
+		c.HitCount++
 		e.SpliceAfter(&c.usedEntries)
 		return e.bucket
 	}
 
+	c.MissCount++
 	return nil
 }
 

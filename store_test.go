@@ -18,6 +18,17 @@ func TestStore(t *testing.T) {
 		return NewStore(rootPath)
 	}
 
+	expectCacheCounts := func(s *Store, hits, misses uint64, t *testing.T) {
+		info := s.Info()
+
+		if result := info.CacheHitCount; result != hits {
+			t.Errorf("Expected hit count to be %d but got %d", hits, result)
+		}
+		if result := info.CacheMissCount; result != misses {
+			t.Errorf("Expected miss count to be %d but got %d", misses, result)
+		}
+	}
+
 	t.Run("Destroy() removes disk location", func(t *testing.T) {
 		s := newTempStoreWithPrefix("keva-test", t)
 		s.Destroy()
@@ -30,6 +41,27 @@ func TestStore(t *testing.T) {
 		} else if err == nil {
 			t.Fatalf("Expected an error when reading '%v' but got nothing", s.rootPath)
 		}
+	})
+
+	t.Run("Info() returns cache hit and miss counts", func(t *testing.T) {
+		s := newTempStoreWithPrefix("keva-test", t)
+		defer s.Destroy()
+
+		expectCacheCounts(s, 0, 0, t)
+
+		var value string
+
+		s.Get("someKey", &value)
+		expectCacheCounts(s, 0, 1, t)
+
+		s.Put("someKey", "someValue")
+		expectCacheCounts(s, 1, 1, t)
+
+		s.Put("someKey", "someOtherValue")
+		expectCacheCounts(s, 2, 1, t)
+
+		s.Get("someOtherKey", &value)
+		expectCacheCounts(s, 2, 2, t)
 	})
 
 	t.Run("Put() enforces max objects per bucket", func(t *testing.T) {
