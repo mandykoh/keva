@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"os"
 
+	"sync"
+
 	"github.com/mandykoh/symlock"
 )
 
@@ -17,19 +19,29 @@ type Store struct {
 	rootPath            string
 	cache               *bucketCache
 	readyToFlush        bool
+	storeLock           sync.RWMutex
 	bucketLock          *symlock.SymLock
 }
 
 func (s *Store) Close() error {
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
+
 	return s.cache.Close(s.rootPath)
 }
 
 func (s *Store) Destroy() error {
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
+
 	s.cache.Clear()
 	return os.RemoveAll(s.rootPath)
 }
 
 func (s *Store) Flush() error {
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
+
 	if s.readyToFlush {
 		err := s.cache.Flush(s.rootPath)
 		if err != nil {
@@ -88,6 +100,9 @@ func (s *Store) Remove(key string) error {
 }
 
 func (s *Store) SetMaxBucketsCached(n int) error {
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
+
 	return s.cache.SetMaxBucketsCached(n, s.rootPath)
 }
 
@@ -119,6 +134,9 @@ func (s *Store) loadBucketForID(id string) (*bucket, error) {
 }
 
 func (s *Store) withBucketForID(id string, action func(*bucket) error) (err error) {
+	s.storeLock.RLock()
+	defer s.storeLock.RUnlock()
+
 	s.bucketLock.WithMutex(id[0:bucketPathSegmentLength], func() {
 		var bucket *bucket
 		bucket, err = s.bucketForID(id)
