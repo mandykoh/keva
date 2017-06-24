@@ -39,12 +39,9 @@ func (s *Store) Flush() error {
 }
 
 func (s *Store) Get(key string, dest interface{}) error {
-	bucket, err := s.bucketForKey(key)
-	if err != nil {
-		return err
-	}
-
-	return bucket.Get(key, dest)
+	return s.withBucketForKey(key, func(bucket *bucket) error {
+		return bucket.Get(key, dest)
+	})
 }
 
 func (s *Store) Info() StoreInfo {
@@ -56,39 +53,34 @@ func (s *Store) Info() StoreInfo {
 
 func (s *Store) Put(key string, value interface{}) error {
 	id := s.bucketIDForKey(key)
-	bucket, err := s.bucketForID(id)
-	if err != nil {
-		return err
-	}
 
-	err = bucket.Put(key, value)
-	if err != nil {
-		return err
-	}
-
-	s.readyToFlush = true
-
-	if bucket.ObjectCount() > s.maxObjectsPerBucket {
-		err = s.cache.Evict(id, s.rootPath)
+	return s.withBucketForID(id, func(bucket *bucket) error {
+		err := bucket.Put(key, value)
 		if err != nil {
 			return err
 		}
 
-		return bucket.Split(s.rootPath, s.bucketForKey)
-	}
+		s.readyToFlush = true
 
-	return nil
+		if bucket.ObjectCount() > s.maxObjectsPerBucket {
+			err = s.cache.Evict(id, s.rootPath)
+			if err != nil {
+				return err
+			}
+
+			return bucket.Split(s.rootPath, s.bucketForKey)
+		}
+
+		return nil
+	})
 }
 
 func (s *Store) Remove(key string) error {
-	bucket, err := s.bucketForKey(key)
-	if err != nil {
-		return err
-	}
-
-	bucket.Remove(key)
-	s.readyToFlush = true
-	return nil
+	return s.withBucketForKey(key, func(bucket *bucket) error {
+		bucket.Remove(key)
+		s.readyToFlush = true
+		return nil
+	})
 }
 
 func (s *Store) SetMaxBucketsCached(n int) error {
@@ -120,6 +112,19 @@ func (s *Store) loadBucketForID(id string) (*bucket, error) {
 	}
 
 	return &b, nil
+}
+
+func (s *Store) withBucketForID(id string, action func(*bucket) error) error {
+	bucket, err := s.bucketForID(id)
+	if err != nil {
+		return err
+	}
+
+	return action(bucket)
+}
+
+func (s *Store) withBucketForKey(key string, action func(*bucket) error) error {
+	return s.withBucketForID(s.bucketIDForKey(key), action)
 }
 
 func NewStore(rootPath string) *Store {
