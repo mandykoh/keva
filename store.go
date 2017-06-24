@@ -4,16 +4,20 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
+
+	"github.com/mandykoh/symlock"
 )
 
 const DefaultMaxObjectsPerBucket = 64
 const DefaultMaxBucketsCached = 128
+const DefaultLockPartitions = 8
 
 type Store struct {
 	maxObjectsPerBucket int
 	rootPath            string
 	cache               *bucketCache
 	readyToFlush        bool
+	bucketLock          *symlock.SymLock
 }
 
 func (s *Store) Close() error {
@@ -114,13 +118,16 @@ func (s *Store) loadBucketForID(id string) (*bucket, error) {
 	return &b, nil
 }
 
-func (s *Store) withBucketForID(id string, action func(*bucket) error) error {
-	bucket, err := s.bucketForID(id)
-	if err != nil {
-		return err
-	}
+func (s *Store) withBucketForID(id string, action func(*bucket) error) (err error) {
+	s.bucketLock.WithMutex(id[0:bucketPathSegmentLength], func() {
+		var bucket *bucket
+		bucket, err = s.bucketForID(id)
+		if err == nil {
+			err = action(bucket)
+		}
+	})
 
-	return action(bucket)
+	return
 }
 
 func (s *Store) withBucketForKey(key string, action func(*bucket) error) error {
@@ -132,5 +139,6 @@ func NewStore(rootPath string) *Store {
 		maxObjectsPerBucket: DefaultMaxObjectsPerBucket,
 		rootPath:            rootPath,
 		cache:               newBucketCache(DefaultMaxBucketsCached),
+		bucketLock:          symlock.NewWithPartitions(DefaultLockPartitions),
 	}
 }
