@@ -10,8 +10,8 @@ import (
 	"github.com/mandykoh/symlock"
 )
 
-const DefaultMaxObjectsPerBucket = 64
-const DefaultMaxBucketsCached = 128
+const DefaultMaxObjectsPerBucket = 512
+const DefaultMaxBucketsCached = 512
 const DefaultLockPartitions = 8
 
 type Store struct {
