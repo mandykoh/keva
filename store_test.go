@@ -15,7 +15,12 @@ func TestStore(t *testing.T) {
 			t.Fatalf("Could not create temporary location for store: %v", err)
 		}
 
-		return NewStore(rootPath)
+		store, err := NewStore(rootPath)
+		if err != nil {
+			t.Fatalf("Could not create store: %v", err)
+		}
+
+		return store
 	}
 
 	expectCacheCounts := func(s *Store, hits, misses uint64, t *testing.T) {

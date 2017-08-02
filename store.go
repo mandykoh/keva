@@ -152,11 +152,16 @@ func (s *Store) withBucketForKey(key string, action func(*bucket) error) error {
 	return s.withBucketForID(s.bucketIDForKey(key), action)
 }
 
-func NewStore(rootPath string) *Store {
+func NewStore(rootPath string) (*Store, error) {
+	err := os.MkdirAll(rootPath, 0700)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Store{
 		maxObjectsPerBucket: DefaultMaxObjectsPerBucket,
 		rootPath:            rootPath,
 		cache:               newBucketCache(DefaultMaxBucketsCached),
 		bucketLock:          symlock.NewWithPartitions(DefaultLockPartitions),
-	}
+	}, nil
 }

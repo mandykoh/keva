@@ -158,7 +158,10 @@ func TestBucket(t *testing.T) {
 
 		defer os.RemoveAll(rootPath)
 
-		var s = NewStore(rootPath)
+		s, err := NewStore(rootPath)
+		if err != nil {
+			t.Fatalf("Error creating store: %v", err)
+		}
 
 		var b bucket
 		err = b.Load(rootPath, s.bucketIDForKey("aabb"))
