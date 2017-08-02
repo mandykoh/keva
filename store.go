@@ -19,7 +19,7 @@ type Store struct {
 	rootPath            string
 	cache               *bucketCache
 	readyToFlush        bool
-	storeLock           sync.RWMutex
+	storeLock           sync.Mutex
 	bucketLock          *symlock.SymLock
 }
 
@@ -79,7 +79,10 @@ func (s *Store) Put(key string, value interface{}) error {
 		s.readyToFlush = true
 
 		if bucket.ObjectCount() > s.maxObjectsPerBucket {
+			s.storeLock.Lock()
 			err = s.cache.Evict(id, s.rootPath)
+			s.storeLock.Unlock()
+
 			if err != nil {
 				return err
 			}
@@ -115,6 +118,9 @@ func (s *Store) bucketForKey(key string) (*bucket, error) {
 }
 
 func (s *Store) bucketForID(id string) (*bucket, error) {
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
+
 	return s.cache.Fetch(id, s.rootPath, s.loadBucketForID)
 }
 
@@ -134,9 +140,6 @@ func (s *Store) loadBucketForID(id string) (*bucket, error) {
 }
 
 func (s *Store) withBucketForID(id string, action func(*bucket) error) (err error) {
-	s.storeLock.RLock()
-	defer s.storeLock.RUnlock()
-
 	s.bucketLock.WithMutex(id[0:bucketPathSegmentLength], func() {
 		var bucket *bucket
 		bucket, err = s.bucketForID(id)
