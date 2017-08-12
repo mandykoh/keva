@@ -10,7 +10,7 @@ import (
 	"github.com/mandykoh/symlock"
 )
 
-const DefaultMaxObjectsPerBucket = 512
+const DefaultMaxObjectsPerBucket = 128
 const DefaultMaxBucketsCached = 512
 const DefaultLockPartitions = 8
 
